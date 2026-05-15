@@ -1,97 +1,154 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-// Variables joueur
-let player = { x: 100, y: 400, width: 50, height: 70, velY: 0, speed: 5, onGround: false };
+let player = { x: 80, y: 300, w: 48, h: 68, velY: 0, speed: 5, onGround: false };
 let keys = {};
+let cameraX = 0;
+let gravity = 0.85;
+let score = 0;
+let gameOver = false;
 
-// Plateformes (comme tes screenshots)
-const platforms = [
-    {x:0, y:500, w:800, h:100}, // sol
-    {x:150, y:420, w:130, h:20},
-    {x:320, y:320, w:130, h:20},
-    {x:500, y:380, w:110, h:20}
+let playerImg = new Image();
+playerImg.src = 'player.png';
+
+let enemies = [
+    { x: 650, y: 390, w: 42, h: 42, velX: -1.8, alive: true },
+    { x: 1050, y: 390, w: 42, h: 42, velX: -1.5, alive: true }
 ];
 
-// Pipe
-const pipe = {x:650, y:410, w:60, h:100};
+let platforms = [
+    {x:0, y:430, w:2000, h:70},
+    {x:280, y:340, w:160, h:20},
+    {x:520, y:260, w:140, h:20},
+    {x:780, y:360, w:180, h:20},
+    {x:1100, y:290, w:150, h:20}
+];
 
-// Image joueur (ta photo)
-let playerImg = new Image();
-playerImg.src = 'player.png'; // Mets ta photo ici
+let pipe = {x: 1350, y: 370, w: 70, h: 110};
 
-// Contrôles
-window.addEventListener('keydown', e => keys[e.key] = true);
-window.addEventListener('keyup', e => keys[e.key] = false);
+let leftPressed = false;
+let rightPressed = false;
 
-function update() {
-    // Mouvement horizontal
-    if (keys['ArrowLeft'] || keys['q'] || keys['Q']) player.x -= player.speed;
-    if (keys['ArrowRight'] || keys['d'] || keys['D']) player.x += player.speed;
+function moveLeft(pressed) { leftPressed = pressed; }
+function moveRight(pressed) { rightPressed = pressed; }
 
-    // Saut
-    if ((keys[' '] || keys['ArrowUp']) && player.onGround) {
+function jump() {
+    if (player.onGround && !gameOver) {
         player.velY = -17;
         player.onGround = false;
     }
+}
 
-    // Gravité
-    player.velY += 0.85;
+document.addEventListener('keydown', e => { keys[e.key] = true; if ((e.key === ' ' || e.key === 'ArrowUp') && player.onGround) jump(); });
+document.addEventListener('keyup', e => keys[e.key] = false);
+
+function update() {
+    if (gameOver) return;
+
+    if (keys['ArrowLeft'] || keys['q'] || keys['Q'] || leftPressed) player.x -= player.speed;
+    if (keys['ArrowRight'] || keys['d'] || keys['D'] || rightPressed) player.x += player.speed;
+
+    player.velY += gravity;
     player.y += player.velY;
 
-    // Collisions
     player.onGround = false;
     for (let p of platforms) {
-        if (player.x < p.x + p.w && player.x + player.width > p.x &&
-            player.y < p.y + p.h && player.y + player.height > p.y && player.velY >= 0) {
-            player.y = p.y - player.height;
+        if (player.x < p.x + p.w && player.x + player.w > p.x &&
+            player.y + player.h > p.y && player.y + player.h - player.velY <= p.y) {
+            player.y = p.y - player.h;
             player.velY = 0;
             player.onGround = true;
         }
     }
 
-    // Limites
-    if (player.x < 0) player.x = 0;
-    if (player.x + player.width > 800) player.x = 800 - player.width;
-    if (player.y > 600) {
-        player.y = 400; // reset
-        player.velY = 0;
+    if (player.x < pipe.x + pipe.w && player.x + player.w > pipe.x &&
+        player.y < pipe.y + pipe.h && player.y + player.h > pipe.y) {
+        player.x = pipe.x - player.w;
     }
+
+    if (player.x > cameraX + 450) cameraX = player.x - 450;
+    if (player.x < cameraX + 50) player.x = cameraX + 50;
+
+    enemies.forEach(e => {
+        if (e.alive) {
+            e.x += e.velX;
+            if (e.x < cameraX + 100 || e.x > cameraX + 1400) e.velX *= -1;
+
+            if (player.x < e.x + e.w && player.x + player.w > e.x &&
+                player.y < e.y + e.h && player.y + player.h > e.y) {
+                if (player.velY > 0 && player.y + player.h - 20 < e.y) {
+                    e.alive = false;
+                    player.velY = -12;
+                    score += 100;
+                } else {
+                    gameOver = true;
+                }
+            }
+        }
+    });
+
+    if (player.y > 550) gameOver = true;
+
+    score += 1;
 }
 
 function draw() {
-    // Ciel
     ctx.fillStyle = '#5C94FC';
-    ctx.fillRect(0, 0, 800, 600);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Plateformes
-    ctx.fillStyle = '#C19A6B';
-    for (let p of platforms) {
-        ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.save();
+    ctx.translate(-cameraX, 0);
+
+    ctx.fillStyle = '#E8B76B';
+    ctx.fillRect(0, 430, 2500, 100);
+
+    ctx.fillStyle = '#C4A484';
+    platforms.forEach(p => ctx.fillRect(p.x, p.y, p.w, p.h));
+
+    ctx.fillStyle = '#00A000';
+    ctx.fillRect(pipe.x, pipe.y, pipe.w, pipe.h);
+    ctx.fillStyle = '#008000';
+    ctx.fillRect(pipe.x - 8, pipe.y - 25, pipe.w + 16, 30);
+
+    if (playerImg.complete) {
+        ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
+    } else {
+        ctx.fillStyle = '#FF4500';
+        ctx.fillRect(player.x, player.y, player.w, player.h);
     }
 
-    // Pipe verte
-    ctx.fillStyle = '#00AA00';
-    ctx.fillRect(pipe.x, pipe.y, pipe.w, pipe.h);
-    ctx.fillStyle = '#008800';
-    ctx.fillRect(pipe.x-5, pipe.y-30, pipe.w+10, 35);
+    ctx.fillStyle = '#8B4513';
+    enemies.forEach(e => {
+        if (e.alive) ctx.fillRect(e.x, e.y, e.w, e.h);
+    });
 
-    // Dessin joueur (ta tête)
-    if (playerImg.complete) {
-        ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
-    } else {
-        // Fallback rectangle Naruto-like
-        ctx.fillStyle = '#FF8800';
-        ctx.fillRect(player.x, player.y, player.width, player.height);
-        ctx.fillStyle = '#FFDD00';
-        ctx.fillRect(player.x+10, player.y+10, 30, 25); // visage
+    ctx.restore();
+
+    ctx.fillStyle = '#FFF';
+    ctx.font = 'bold 22px Arial';
+    ctx.fillText('Score: ' + Math.floor(score / 5), 20, 40);
+    ctx.fillText('Super Moi Bros - Naruto', 20, 70);
+
+    if (gameOver) {
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#FF0000';
+        ctx.font = 'bold 48px Arial';
+        ctx.fillText('GAME OVER', 220, 220);
+        ctx.font = '24px Arial';
+        ctx.fillStyle = '#FFF';
+        ctx.fillText('Appuie sur R pour recommencer', 180, 280);
     }
 }
 
-function gameLoop() {
+function loop() {
     update();
     draw();
-    requestAnimationFrame(gameLoop);
+    requestAnimationFrame(loop);
 }
 
-gameLoop();
+document.addEventListener('keydown', e => {
+    if (e.key.toLowerCase() === 'r' && gameOver) location.reload();
+});
+
+loop();

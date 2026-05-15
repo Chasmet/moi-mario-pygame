@@ -2,21 +2,47 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Moi Bros - Naruto Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Super Moi Bros - Naruto</title>
     <style>
-        body { margin:0; background:#000; font-family:Arial; text-align:center; }
-        canvas { image-rendering: pixelated; border: 4px solid #fff; margin: 20px auto; display:block; background:#5C94FC; }
-        #instructions { color:#fff; margin:10px; }
+        body { margin:0; background:#000; font-family:sans-serif; overflow:hidden; }
+        canvas { display:block; margin:0 auto; image-rendering:pixelated; max-width:100%; height:auto; }
+        #mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: none;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 100;
+        }
+        @media (max-width: 900px) {
+            #mobile-controls { display: flex; }
+        }
+        button {
+            background: rgba(255,255,255,0.3);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            font-size: 24px;
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+        }
     </style>
 </head>
 <body>
-    <h1 style="color:#FFCC00;">Super Moi Bros - Naruto !</h1>
-    <canvas id="game" width="800" height="600"></canvas>
-    <div id="instructions">
-        Flèches / Q D : déplacer • ESPACE : sauter<br>
-        Ta tête = Naruto ! Upload player.png dans le repo pour le voir<br>
+    <canvas id="game" width="800" height="500"></canvas>
+
+    <div id="mobile-controls">
+        <div>
+            <button onclick="moveLeft(true)" onpointerup="moveLeft(false)" onpointerleave="moveLeft(false)">←</button>
+            <button onclick="moveRight(true)" onpointerup="moveRight(false)" onpointerleave="moveRight(false)">→</button>
+        </div>
+        <button onclick="jump()" style="margin-right:20px;">↑ SAUT</button>
     </div>
+
     <script src="game.js"></script>
 </body>
 </html>
