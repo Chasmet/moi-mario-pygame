@@ -1,93 +1,105 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-let player = { x: 80, y: 300, w: 48, h: 68, velY: 0, speed: 5, onGround: false };
+let player = { x: 80, y: 300, w: 55, h: 75, velY: 0, speed: 6, jumping: false };
 let keys = {};
 let cameraX = 0;
 let gravity = 0.85;
 let score = 0;
 let gameOver = false;
 
+// Ta photo Naruto
 let playerImg = new Image();
 playerImg.src = 'player.png';
 
+// Ennemis Goomba
 let enemies = [
-    { x: 650, y: 390, w: 42, h: 42, velX: -1.8, alive: true },
-    { x: 1050, y: 390, w: 42, h: 42, velX: -1.5, alive: true }
+    {x: 650, y: 380, w: 48, h: 48, velX: -2.2},
+    {x: 1150, y: 380, w: 48, h: 48, velX: -2.2}
 ];
 
 let platforms = [
     {x:0, y:430, w:2000, h:70},
-    {x:280, y:340, w:160, h:20},
-    {x:520, y:260, w:140, h:20},
-    {x:780, y:360, w:180, h:20},
-    {x:1100, y:290, w:150, h:20}
+    {x:280, y:340, w:160, h:25},
+    {x:520, y:260, w:160, h:25},
+    {x:820, y:340, w:160, h:25},
+    {x:1250, y:280, w:160, h:25}
 ];
 
-let pipe = {x: 1350, y: 370, w: 70, h: 110};
+let pipe = {x: 1550, y: 370, w: 85, h: 110};
 
-let leftPressed = false;
-let rightPressed = false;
+// Touch controls
+let touchLeft = false, touchRight = false, touchJump = false;
 
-function moveLeft(pressed) { leftPressed = pressed; }
-function moveRight(pressed) { rightPressed = pressed; }
+const leftBtn = document.getElementById('leftBtn');
+const rightBtn = document.getElementById('rightBtn');
+const jumpBtn = document.getElementById('jumpBtn');
 
-function jump() {
-    if (player.onGround && !gameOver) {
-        player.velY = -17;
-        player.onGround = false;
-    }
-}
+leftBtn.addEventListener('touchstart', () => touchLeft = true);
+leftBtn.addEventListener('touchend', () => touchLeft = false);
+rightBtn.addEventListener('touchstart', () => touchRight = true);
+rightBtn.addEventListener('touchend', () => touchRight = false);
+jumpBtn.addEventListener('touchstart', () => { if (!player.jumping) { player.velY = -19; player.jumping = true; } });
 
-document.addEventListener('keydown', e => { keys[e.key] = true; if ((e.key === ' ' || e.key === 'ArrowUp') && player.onGround) jump(); });
-document.addEventListener('keyup', e => keys[e.key] = false);
+// Clavier
+document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
 function update() {
     if (gameOver) return;
 
-    if (keys['ArrowLeft'] || keys['q'] || keys['Q'] || leftPressed) player.x -= player.speed;
-    if (keys['ArrowRight'] || keys['d'] || keys['D'] || rightPressed) player.x += player.speed;
+    // Mouvement
+    if (keys['arrowleft'] || keys['q'] || touchLeft) player.x -= player.speed;
+    if (keys['arrowright'] || keys['d'] || touchRight) player.x += player.speed;
 
+    // Saut
+    if ((keys[' '] || keys['arrowup']) && !player.jumping) {
+        player.velY = -19;
+        player.jumping = true;
+    }
+
+    // Gravité
     player.velY += gravity;
     player.y += player.velY;
 
-    player.onGround = false;
+    // Collisions plateformes
+    player.jumping = true;
     for (let p of platforms) {
-        if (player.x < p.x + p.w && player.x + player.w > p.x &&
-            player.y + player.h > p.y && player.y + player.h - player.velY <= p.y) {
+        if (player.x + player.w > p.x && player.x < p.x + p.w &&
+            player.y + player.h > p.y && player.y + player.h - player.velY <= p.y + 10) {
             player.y = p.y - player.h;
             player.velY = 0;
-            player.onGround = true;
+            player.jumping = false;
         }
     }
 
-    if (player.x < pipe.x + pipe.w && player.x + player.w > pipe.x &&
-        player.y < pipe.y + pipe.h && player.y + player.h > pipe.y) {
-        player.x = pipe.x - player.w;
+    // Limites
+    if (player.y > 600) {
+        gameOver = true;
     }
+    if (player.x < cameraX + 30) player.x = cameraX + 30;
 
+    // Scrolling
     if (player.x > cameraX + 450) cameraX = player.x - 450;
-    if (player.x < cameraX + 50) player.x = cameraX + 50;
 
+    // Ennemis
     enemies.forEach(e => {
-        if (e.alive) {
-            e.x += e.velX;
-            if (e.x < cameraX + 100 || e.x > cameraX + 1400) e.velX *= -1;
+        e.x += e.velX;
+        if (e.x < 300) e.velX = 2.5;
+        if (e.x > 1700) e.velX = -2.5;
 
-            if (player.x < e.x + e.w && player.x + player.w > e.x &&
-                player.y < e.y + e.h && player.y + player.h > e.y) {
-                if (player.velY > 0 && player.y + player.h - 20 < e.y) {
-                    e.alive = false;
-                    player.velY = -12;
-                    score += 100;
-                } else {
-                    gameOver = true;
-                }
+        // Collision ennemi
+        if (player.x + player.w > e.x && player.x < e.x + e.w &&
+            player.y + player.h > e.y && player.y < e.y + e.h) {
+            if (player.velY > 0 && player.y + player.h - player.velY < e.y + 10) {
+                // Écrase l'ennemi
+                e.x = -100;
+                score += 200;
+            } else {
+                gameOver = true;
             }
         }
     });
-
-    if (player.y > 550) gameOver = true;
 
     score += 1;
 }
@@ -99,17 +111,19 @@ function draw() {
     ctx.save();
     ctx.translate(-cameraX, 0);
 
-    ctx.fillStyle = '#E8B76B';
+    // Sol
+    ctx.fillStyle = '#E0B070';
     ctx.fillRect(0, 430, 2500, 100);
 
-    ctx.fillStyle = '#C4A484';
+    // Plateformes
+    ctx.fillStyle = '#E8B76B';
     platforms.forEach(p => ctx.fillRect(p.x, p.y, p.w, p.h));
 
+    // Pipe
     ctx.fillStyle = '#00A000';
     ctx.fillRect(pipe.x, pipe.y, pipe.w, pipe.h);
-    ctx.fillStyle = '#008000';
-    ctx.fillRect(pipe.x - 8, pipe.y - 25, pipe.w + 16, 30);
 
+    // Toi (Naruto avec ta photo)
     if (playerImg.complete) {
         ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
     } else {
@@ -117,17 +131,21 @@ function draw() {
         ctx.fillRect(player.x, player.y, player.w, player.h);
     }
 
+    // Ennemis
     ctx.fillStyle = '#8B4513';
     enemies.forEach(e => {
-        if (e.alive) ctx.fillRect(e.x, e.y, e.w, e.h);
+        ctx.fillRect(e.x, e.y, e.w, e.h);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(e.x+10, e.y+15, 12, 12); // yeux
+        ctx.fillRect(e.x+28, e.y+15, 12, 12);
     });
 
     ctx.restore();
 
+    // UI
     ctx.fillStyle = '#FFF';
     ctx.font = 'bold 22px Arial';
-    ctx.fillText('Score: ' + Math.floor(score / 5), 20, 40);
-    ctx.fillText('Super Moi Bros - Naruto', 20, 70);
+    ctx.fillText('Score: ' + Math.floor(score/8), 30, 45);
 
     if (gameOver) {
         ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -135,9 +153,9 @@ function draw() {
         ctx.fillStyle = '#FF0000';
         ctx.font = 'bold 48px Arial';
         ctx.fillText('GAME OVER', 220, 220);
-        ctx.font = '24px Arial';
+        ctx.font = 'bold 28px Arial';
         ctx.fillStyle = '#FFF';
-        ctx.fillText('Appuie sur R pour recommencer', 180, 280);
+        ctx.fillText('Appuie sur R pour recommencer', 140, 280);
     }
 }
 
@@ -147,8 +165,11 @@ function loop() {
     requestAnimationFrame(loop);
 }
 
+// Restart
 document.addEventListener('keydown', e => {
-    if (e.key.toLowerCase() === 'r' && gameOver) location.reload();
+    if (e.key.toLowerCase() === 'r' && gameOver) {
+        location.reload();
+    }
 });
 
 loop();

@@ -5,42 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Super Moi Bros - Naruto</title>
     <style>
-        body { margin:0; background:#000; font-family:sans-serif; overflow:hidden; }
+        body { margin:0; background:#000; overflow:hidden; font-family:sans-serif; }
         canvas { display:block; margin:0 auto; image-rendering:pixelated; max-width:100%; height:auto; }
-        #mobile-controls {
-            position: fixed;
-            bottom: 20px;
-            left: 0;
-            right: 0;
-            display: none;
-            justify-content: space-between;
-            padding: 0 20px;
-            z-index: 100;
-        }
-        @media (max-width: 900px) {
-            #mobile-controls { display: flex; }
-        }
-        button {
-            background: rgba(255,255,255,0.3);
-            color: white;
-            border: none;
-            padding: 15px 25px;
-            font-size: 24px;
-            border-radius: 50%;
-            width: 70px;
-            height: 70px;
-        }
+        #controls { position:fixed; bottom:20px; left:0; right:0; display:flex; justify-content:space-around; z-index:100; }
+        button { font-size:28px; padding:15px 30px; margin:5px; border-radius:12px; background:#ff6600; color:white; border:none; box-shadow:0 4px 0 #cc5500; }
+        button:active { transform:translateY(4px); box-shadow:0 0 0; }
     </style>
 </head>
 <body>
-    <canvas id="game" width="800" height="500"></canvas>
+    <canvas id="game" width="800" height="480"></canvas>
 
-    <div id="mobile-controls">
-        <div>
-            <button onclick="moveLeft(true)" onpointerup="moveLeft(false)" onpointerleave="moveLeft(false)">←</button>
-            <button onclick="moveRight(true)" onpointerup="moveRight(false)" onpointerleave="moveRight(false)">→</button>
-        </div>
-        <button onclick="jump()" style="margin-right:20px;">↑ SAUT</button>
+    <div id="controls">
+        <button id="leftBtn">←</button>
+        <button id="rightBtn">→</button>
+        <button id="jumpBtn">SAUT</button>
     </div>
 
     <script src="game.js"></script>
