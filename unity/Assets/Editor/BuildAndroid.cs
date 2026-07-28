@@ -31,7 +31,7 @@ namespace SuperChkBrosEditor
             PlayerSettings.bundleVersion = "1.0.0-unity";
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.chknoir.superchkbros.unity");
-            PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.Mono2x);
+            PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
             PlayerSettings.Android.bundleVersionCode = 100;
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel23;
             PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevelAuto;
