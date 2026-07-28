@@ -1,14 +1,14 @@
-# SUPER CHK BROS — Godot 4 Android
+# SUPER CHK BROS — Godot 4.7.1 Android
 
-Vrai jeu de plateforme 2D réalisé avec **Godot 4.3**, conçu pour Android en mode paysage.
+Vrai jeu de plateforme 2D Mario-like réalisé avec **Godot 4.7.1**, conçu pour Android en mode paysage.
 
 ## Télécharger directement l’APK
 
-Après la fin de GitHub Actions :
+Après la réussite de GitHub Actions :
 
 **https://github.com/Chasmet/moi-mario-pygame/releases/latest/download/Super-CHK-Bros.apk**
 
-Le fichier téléchargé est directement `Super-CHK-Bros.apk`, sans ZIP ni TAR.
+Le fichier téléchargé est directement `Super-CHK-Bros.apk`, sans faux APK, ZIP ou WebView.
 
 ## Gameplay
 
@@ -17,7 +17,7 @@ Le fichier téléchargé est directement `Super-CHK-Bros.apk`, sans ZIP ni TAR.
 - personnage CHK utilisant `player.png`
 - nombreux ennemis utilisant les PNG disponibles dans le dépôt
 - commandes tactiles Android : gauche, droite et saut
-- accélération, freinage, saut variable, tolérance de saut et saut mémorisé
+- accélération, freinage, saut variable, coyote time et saut mémorisé
 - plateformes fixes et mobiles
 - pièces, vies bonus et points de contrôle
 - pièges, trous, lave, eau et zones dangereuses
@@ -30,10 +30,12 @@ Le fichier téléchargé est directement `Super-CHK-Bros.apk`, sans ZIP ni TAR.
 
 Le workflow `.github/workflows/build-apk.yml` :
 
-1. importe le projet avec Godot 4.3 ;
-2. valide les scènes et les scripts ;
-3. exporte un véritable APK Godot Android ;
-4. publie automatiquement `Super-CHK-Bros.apk` dans la dernière Release GitHub.
+1. utilise Godot 4.7.1 et ses modèles d’export Android ;
+2. importe et valide toutes les scènes et tous les scripts ;
+3. arrête immédiatement la compilation en cas d’erreur ;
+4. exporte un véritable APK Android Godot ;
+5. fournit l’APK dans les Artifacts ;
+6. publie automatiquement `Super-CHK-Bros.apk` dans la dernière Release après un push sur `main`.
 
 ## Contrôles ordinateur
 
