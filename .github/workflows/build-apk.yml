@@ -1,7 +1,9 @@
-name: Build Godot Android APK
+name: Build Godot 4.7 Android APK
 
 on:
   push:
+    branches: [ main ]
+  pull_request:
     branches: [ main ]
   workflow_dispatch:
 
@@ -9,20 +11,20 @@ permissions:
   contents: write
 
 concurrency:
-  group: godot-android-apk
+  group: godot-android-apk-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  GODOT_VERSION: "4.3"
+  GODOT_VERSION: "4.7.1"
   APK_NAME: "Super-CHK-Bros.apk"
 
 jobs:
   build:
-    name: Build real Godot APK
+    name: Validate and build real Godot APK
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 40
     container:
-      image: barichello/godot-ci:4.3
+      image: barichello/godot-ci:4.7.1
 
     steps:
       - name: Checkout Godot project
@@ -30,51 +32,82 @@ jobs:
         with:
           lfs: true
 
-      - name: Prepare Godot templates
+      - name: Prepare Godot 4.7.1 export templates
         shell: bash
         run: |
           set -euo pipefail
+          TEMPLATE_SOURCE="/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          TEMPLATE_TARGET="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+
           mkdir -p "$HOME/.local/share/godot/export_templates"
           mkdir -p "$HOME/.config"
 
-          if [ -d "/root/.config/godot" ]; then
+          if [ -d "/root/.config/godot" ] && [ "$HOME" != "/root" ]; then
             rm -rf "$HOME/.config/godot"
             cp -a "/root/.config/godot" "$HOME/.config/godot"
           fi
 
-          if [ -d "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" ]; then
-            rm -rf "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-            cp -a "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" \
-              "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          if [ -d "$TEMPLATE_SOURCE" ] && [ "$TEMPLATE_SOURCE" != "$TEMPLATE_TARGET" ]; then
+            rm -rf "$TEMPLATE_TARGET"
+            cp -a "$TEMPLATE_SOURCE" "$TEMPLATE_TARGET"
           fi
 
           godot --version
           test -f project.godot
           test -f export_presets.cfg
+          test -d "$TEMPLATE_TARGET" || test -d "$TEMPLATE_SOURCE"
 
-      - name: Import and validate project
+      - name: Import and validate scenes and scripts
         shell: bash
         run: |
           set -euo pipefail
           godot --headless --verbose --editor --quit --path .
 
       - name: Export installable Android APK
+        id: export
         shell: bash
         run: |
-          set -euo pipefail
-          rm -f "$APK_NAME"
-          godot --headless --verbose --path . --export-debug "Android" "$PWD/$APK_NAME"
-          test -s "$APK_NAME"
-          sha256sum "$APK_NAME"
+          set +e
+          rm -f "$APK_NAME" godot-export.log godot-export.status
+          godot --headless --verbose --path . --export-debug "Android" "$PWD/$APK_NAME" 2>&1 | tee godot-export.log
+          STATUS=${PIPESTATUS[0]}
+          echo "$STATUS" > godot-export.status
+
+          if [ "$STATUS" -eq 0 ]; then
+            test -s "$APK_NAME" || STATUS=90
+          fi
+
+          if [ "$STATUS" -eq 0 ]; then
+            ls -lh "$APK_NAME"
+            sha256sum "$APK_NAME"
+          else
+            echo "Godot Android export failed with status $STATUS"
+            tail -n 120 godot-export.log || true
+          fi
+
+          exit "$STATUS"
+
+      - name: Upload APK and export diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Super-CHK-Bros-Godot-4.7.1-build
+          path: |
+            Super-CHK-Bros.apk
+            godot-export.log
+            godot-export.status
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Publish direct APK download
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-latest
-          name: Super CHK Bros - APK Android Godot
+          name: Super CHK Bros - APK Android Godot 4.7.1
           body: |
-            APK Android Godot directement installable.
-            10 niveaux, commandes tactiles, ennemis PNG, boss et sauvegarde du record.
+            Véritable APK Android exporté avec Godot 4.7.1.
+            10 niveaux, commandes tactiles, ennemis PNG, boss, checkpoints et sauvegarde du record.
           files: Super-CHK-Bros.apk
           make_latest: true
           overwrite_files: true
