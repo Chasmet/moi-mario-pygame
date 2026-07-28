@@ -64,25 +64,43 @@ jobs:
           godot --headless --verbose --editor --quit --path .
 
       - name: Export installable Android APK
+        id: export
         shell: bash
         run: |
-          set -euo pipefail
-          rm -f "$APK_NAME"
-          godot --headless --verbose --path . --export-debug "Android" "$PWD/$APK_NAME"
-          test -s "$APK_NAME"
-          ls -lh "$APK_NAME"
-          sha256sum "$APK_NAME"
+          set +e
+          rm -f "$APK_NAME" godot-export.log godot-export.status
+          godot --headless --verbose --path . --export-debug "Android" "$PWD/$APK_NAME" 2>&1 | tee godot-export.log
+          STATUS=${PIPESTATUS[0]}
+          echo "$STATUS" > godot-export.status
 
-      - name: Upload APK artifact
+          if [ "$STATUS" -eq 0 ]; then
+            test -s "$APK_NAME" || STATUS=90
+          fi
+
+          if [ "$STATUS" -eq 0 ]; then
+            ls -lh "$APK_NAME"
+            sha256sum "$APK_NAME"
+          else
+            echo "Godot Android export failed with status $STATUS"
+            tail -n 120 godot-export.log || true
+          fi
+
+          exit "$STATUS"
+
+      - name: Upload APK and export diagnostics
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Super-CHK-Bros-Godot-4.7.1-APK
-          path: Super-CHK-Bros.apk
-          if-no-files-found: error
+          name: Super-CHK-Bros-Godot-4.7.1-build
+          path: |
+            Super-CHK-Bros.apk
+            godot-export.log
+            godot-export.status
+          if-no-files-found: warn
           retention-days: 30
 
       - name: Publish direct APK download
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-latest
