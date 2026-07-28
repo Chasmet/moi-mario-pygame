@@ -1,49 +1,58 @@
-# SUPER CHK BROS (Godot 4)
+# SUPER CHK BROS — Godot 4 Android
 
-Jeu platformer 2D complet avec **CHK NOIR**.
+Vrai jeu de plateforme 2D réalisé avec **Godot 4.3**, conçu pour Android en mode paysage.
 
-## Comment télécharger et jouer
+## Télécharger directement l’APK
 
-### 1. Télécharger le projet
-Clique sur le bouton vert **Code** → **Download ZIP**
+Après la fin de GitHub Actions :
 
-Ou clone :
-```bash
-git clone https://github.com/Chasmet/moi-mario-pygame.git
-```
+**https://github.com/Chasmet/moi-mario-pygame/releases/latest/download/Super-CHK-Bros.apk**
 
-### 2. Ouvrir avec Godot
-1. Télécharge **Godot 4.3** : https://godotengine.org/download
-2. Ouvre Godot
-3. Clique **Import** → sélectionne le dossier du projet
-4. Clique **Edit**
-5. Appuie sur **F5** pour lancer le jeu
+Le fichier téléchargé est directement `Super-CHK-Bros.apk`, sans ZIP ni TAR.
 
-## Fonctionnalités
-- 10 niveaux progressifs
-- Difficulté qui augmente
-- Score + Vies
-- Écraser les ennemis
-- Collecter les pièces
-- Drapeau de fin de niveau
-- Contrôles clavier (Flèches / A-D + Espace)
+## Gameplay
 
-## Contrôles
+- 10 niveaux complets et progressifs
+- 10 ambiances visuelles différentes
+- personnage CHK utilisant `player.png`
+- nombreux ennemis utilisant les PNG disponibles dans le dépôt
+- commandes tactiles Android : gauche, droite et saut
+- accélération, freinage, saut variable, tolérance de saut et saut mémorisé
+- plateformes fixes et mobiles
+- pièces, vies bonus et points de contrôle
+- pièges, trous, lave, eau et zones dangereuses
+- ennemis terrestres et volants
+- boss aux niveaux 5 et 10
+- caméra fluide, tremblements et vibrations
+- score, record et progression sauvegardés
+
+## Construction automatique
+
+Le workflow `.github/workflows/build-apk.yml` :
+
+1. importe le projet avec Godot 4.3 ;
+2. valide les scènes et les scripts ;
+3. exporte un véritable APK Godot Android ;
+4. publie automatiquement `Super-CHK-Bros.apk` dans la dernière Release GitHub.
+
+## Contrôles ordinateur
+
 | Action | Touches |
-|--------|--------|
-| Gauche | ← ou A |
-| Droite | → ou D |
-| Saut   | Espace ou W |
+|---|---|
+| Gauche | A, Q ou flèche gauche |
+| Droite | D ou flèche droite |
+| Saut | Espace, W ou flèche haut |
 
-## Structure
-```
+## Structure principale
+
+```text
 project.godot
+export_presets.cfg
 scenes/Main.tscn
-scripts/
-  Main.gd
-  Player.gd
-  Enemy.gd
+scripts/Main.gd
+scripts/Player.gd
+scripts/Enemy.gd
+.github/workflows/build-apk.yml
 player.png
+ennemis*.png
 ```
-
-Créé avec Grok + Godot 4.3
