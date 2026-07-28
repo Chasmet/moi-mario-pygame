@@ -24,26 +24,39 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Capacitor & dependencies
+      - name: Create package.json
         run: |
-          npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          cat > package.json << 'EOF'
+          {
+            "name": "super-chk-bros",
+            "version": "1.0.0",
+            "description": "Super CHK Bros",
+            "main": "index.html"
+          }
+          EOF
+
+      - name: Install Capacitor
+        run: |
+          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
+
+      - name: Init Capacitor
+        run: |
           npx cap init "Super CHK Bros" "com.chknoir.superchkbros" --web-dir .
 
-      - name: Add Android platform
+      - name: Add Android
         run: |
           npx cap add android
-          npx cap sync android
+          npx cap sync
 
       - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Super-CHK-Bros-APK
           path: android/app/build/outputs/apk/debug/*.apk
-          retention-days: 30
+          retention-days: 14
