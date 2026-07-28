@@ -3,7 +3,7 @@ extends Control
 signal vector_changed(value: Vector2)
 
 @export var max_radius: float = 46.0
-@export var deadzone: float = 0.14
+@export var deadzone: float = 0.055
 
 var active_touch_index: int = -1
 var mouse_active: bool = false
@@ -98,6 +98,13 @@ func _update_from_position(local_position: Vector2) -> void:
 
 	var delta_from_center: Vector2 = local_position - dynamic_center
 	var distance: float = delta_from_center.length()
+
+	if distance > max_radius * 1.45 and distance > 0.0:
+		var center_shift: float = distance - max_radius * 1.45
+		dynamic_center = _clamp_center(dynamic_center + delta_from_center.normalized() * center_shift * 0.72)
+		delta_from_center = local_position - dynamic_center
+		distance = delta_from_center.length()
+
 	var clamped_delta: Vector2 = delta_from_center
 	if distance > max_radius and distance > 0.0:
 		clamped_delta = delta_from_center / distance * max_radius
@@ -108,8 +115,9 @@ func _update_from_position(local_position: Vector2) -> void:
 	if magnitude <= deadzone:
 		_set_vector(Vector2.ZERO)
 	else:
-		var remapped_magnitude: float = clampf((magnitude - deadzone) / (1.0 - deadzone), 0.0, 1.0)
-		_set_vector(raw_vector.normalized() * remapped_magnitude)
+		var linear_magnitude: float = clampf((magnitude - deadzone) / (1.0 - deadzone), 0.0, 1.0)
+		var responsive_magnitude: float = pow(linear_magnitude, 0.72)
+		_set_vector(raw_vector.normalized() * responsive_magnitude)
 	queue_redraw()
 
 
@@ -123,7 +131,7 @@ func _clamp_center(local_position: Vector2) -> Vector2:
 
 func _set_vector(value: Vector2) -> void:
 	var limited: Vector2 = value.limit_length(1.0)
-	if limited.is_equal_approx(current_vector):
+	if limited.distance_squared_to(current_vector) < 0.000004:
 		return
 	current_vector = limited
 	vector_changed.emit(current_vector)
@@ -131,8 +139,8 @@ func _set_vector(value: Vector2) -> void:
 
 func _draw() -> void:
 	var base_center: Vector2 = dynamic_center if active else resting_center
-	var base_alpha: float = 0.72 if active else 0.36
-	var knob_alpha: float = 0.96 if active else 0.52
+	var base_alpha: float = 0.78 if active else 0.36
+	var knob_alpha: float = 1.0 if active else 0.52
 
 	draw_circle(base_center, max_radius, Color(0.07, 0.22, 0.38, base_alpha))
 	draw_arc(base_center, max_radius, 0.0, TAU, 48, Color(0.55, 0.86, 1.0, base_alpha), 3.0, true)
