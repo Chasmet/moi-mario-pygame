@@ -18,13 +18,14 @@ env:
   GODOT_VERSION: "4.7"
   GODOT_TEMPLATE_DIR: "4.7.stable"
   APK_NAME: "Super-CHK-Bros.apk"
-  GODOT_BIN: ${{ github.workspace }}/.godot-bin/godot
 
 jobs:
   build:
     name: Validate game and build real APK
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 30
+    container:
+      image: barichello/godot-ci:4.7
 
     steps:
       - name: Checkout Godot project
@@ -32,65 +33,43 @@ jobs:
         with:
           lfs: true
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Cache Godot 4.7 and export templates
-        uses: actions/cache@v4
-        with:
-          path: |
-            .godot-bin
-            ~/.local/share/godot/export_templates/4.7.stable
-          key: godot-4.7-stable-linux-android-templates-v1
-
-      - name: Install official Godot 4.7 files
+      - name: Prepare Godot 4.7 environment
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$(dirname "$GODOT_BIN")"
-          mkdir -p "$HOME/.local/share/godot/export_templates/$GODOT_TEMPLATE_DIR"
-
-          if [ ! -x "$GODOT_BIN" ]; then
-            curl -fL --retry 4 --retry-delay 3 \
-              "https://godot-releases.nbg1.your-objectstorage.com/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip" \
-              -o /tmp/godot.zip
-            rm -rf /tmp/godot-engine
-            mkdir -p /tmp/godot-engine
-            unzip -q /tmp/godot.zip -d /tmp/godot-engine
-            mv /tmp/godot-engine/Godot_v4.7-stable_linux.x86_64 "$GODOT_BIN"
-            chmod +x "$GODOT_BIN"
-          fi
-
-          if [ ! -f "$HOME/.local/share/godot/export_templates/$GODOT_TEMPLATE_DIR/android_debug.apk" ]; then
-            curl -fL --retry 4 --retry-delay 3 \
-              "https://godot-releases.nbg1.your-objectstorage.com/4.7-stable/Godot_v4.7-stable_export_templates.tpz" \
-              -o /tmp/export-templates.tpz
-            rm -rf /tmp/godot-templates
-            mkdir -p /tmp/godot-templates
-            unzip -q /tmp/export-templates.tpz -d /tmp/godot-templates
-            cp -a /tmp/godot-templates/templates/. \
-              "$HOME/.local/share/godot/export_templates/$GODOT_TEMPLATE_DIR/"
-          fi
-
-          "$GODOT_BIN" --version
+          godot --version
           test -f project.godot
           test -f export_presets.cfg
+
+          SOURCE_TEMPLATES="/root/.local/share/godot/export_templates/$GODOT_TEMPLATE_DIR"
+          TARGET_TEMPLATES="$HOME/.local/share/godot/export_templates/$GODOT_TEMPLATE_DIR"
+
+          if [ ! -f "$TARGET_TEMPLATES/android_debug.apk" ]; then
+            test -f "$SOURCE_TEMPLATES/android_debug.apk"
+            mkdir -p "$TARGET_TEMPLATES"
+            cp -a "$SOURCE_TEMPLATES/." "$TARGET_TEMPLATES/"
+          fi
+
+          if [ "$HOME" != "/root" ] && [ -d /root/.config/godot ]; then
+            mkdir -p "$HOME/.config"
+            rm -rf "$HOME/.config/godot"
+            cp -a /root/.config/godot "$HOME/.config/godot"
+          fi
+
+          test -f "$TARGET_TEMPLATES/android_debug.apk"
 
       - name: Import resources and validate GDScript
         shell: bash
         run: |
           set -euo pipefail
-          "$GODOT_BIN" --headless --editor --path . --quit
+          godot --headless --editor --path . --quit
 
       - name: Export installable Android APK
         shell: bash
         run: |
           set -euo pipefail
           rm -f "$APK_NAME" "$APK_NAME.sha256"
-          "$GODOT_BIN" --headless --verbose --path . \
+          godot --headless --verbose --path . \
             --export-debug "Android" "$PWD/$APK_NAME"
           test -s "$APK_NAME"
           sha256sum "$APK_NAME" | tee "$APK_NAME.sha256"
