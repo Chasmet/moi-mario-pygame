@@ -5,9 +5,13 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -17,46 +21,88 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
-      - name: Create package.json
+      - name: Create Capacitor project files
         run: |
           cat > package.json << 'EOF'
           {
             "name": "super-chk-bros",
             "version": "1.0.0",
-            "description": "Super CHK Bros",
-            "main": "index.html"
+            "private": true,
+            "dependencies": {
+              "@capacitor/android": "7.4.3",
+              "@capacitor/cli": "7.4.3",
+              "@capacitor/core": "7.4.3"
+            }
+          }
+          EOF
+          npm install --package-lock-only
+
+      - name: Install Capacitor
+        run: npm ci
+
+      - name: Prepare web game
+        run: |
+          mkdir -p www
+          rsync -a ./ www/ \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude 'android/' \
+            --exclude 'www/' \
+            --exclude 'node_modules/' \
+            --exclude 'package.json' \
+            --exclude 'package-lock.json'
+          test -f www/index.html
+          cat > capacitor.config.json << 'EOF'
+          {
+            "appId": "com.chknoir.superchkbros",
+            "appName": "Super CHK Bros",
+            "webDir": "www",
+            "server": {
+              "androidScheme": "https"
+            }
           }
           EOF
 
-      - name: Install Capacitor
-        run: |
-          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
-
-      - name: Init Capacitor
-        run: |
-          npx cap init "Super CHK Bros" "com.chknoir.superchkbros" --web-dir .
-
-      - name: Add Android
+      - name: Create Android project
         run: |
           npx cap add android
-          npx cap sync
+          npx cap sync android
 
-      - name: Build Debug APK
+      - name: Force landscape and immersive game display
+        run: |
+          python3 - << 'PY'
+          from pathlib import Path
+          path = Path('android/app/src/main/AndroidManifest.xml')
+          text = path.read_text()
+          text = text.replace(
+              'android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"',
+              'android:screenOrientation="landscape" android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"'
+          )
+          path.write_text(text)
+          PY
+
+      - name: Build APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk Super-CHK-Bros.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Super-CHK-Bros-APK
-          path: android/app/build/outputs/apk/debug/*.apk
-          retention-days: 14
+          path: Super-CHK-Bros.apk
+          if-no-files-found: error
+          retention-days: 30
