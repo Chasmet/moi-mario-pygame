@@ -22,8 +22,8 @@ const FRICTION = 0.82;
 let player = {
     x: 80,
     y: 200,
-    w: 48,
-    h: 64,
+    w: 52,
+    h: 78,
     velX: 0,
     velY: 0,
     onGround: false,
@@ -152,7 +152,6 @@ function resetGame() {
     overlay.style.display = 'none';
 
     enemies.forEach(e => { e.alive = true; e.x = e.startX || e.x; });
-    // store original positions
     enemies.forEach(e => { if (!e.startX) e.startX = e.x; });
     coinList.forEach(c => c.collected = false);
 
@@ -175,7 +174,6 @@ function die() {
         overlayMsg.textContent = 'Score final : ' + score;
         overlay.style.display = 'flex';
     } else {
-        // respawn
         player.x = Math.max(80, cameraX + 100);
         player.y = 200;
         player.velY = 0;
@@ -195,7 +193,6 @@ function win() {
 function update() {
     if (gameState !== 'play') return;
 
-    // Horizontal movement
     let moving = false;
     if (keys['arrowleft'] || keys['q'] || keys['a'] || touchLeft) {
         player.velX = -MOVE_SPEED;
@@ -212,15 +209,12 @@ function update() {
 
     player.x += player.velX;
 
-    // Gravity
     player.velY += GRAVITY;
     player.y += player.velY;
 
-    // Platform collisions
     player.onGround = false;
     for (const p of platforms) {
         if (player.x + player.w > p.x && player.x < p.x + p.w) {
-            // Landing on top
             if (player.velY >= 0 &&
                 player.y + player.h > p.y &&
                 player.y + player.h - player.velY <= p.y + 12) {
@@ -231,28 +225,22 @@ function update() {
         }
     }
 
-    // Fall death
     if (player.y > 600) die();
 
-    // Camera
     if (player.x > cameraX + 380) cameraX = player.x - 380;
     if (player.x < cameraX + 120) cameraX = Math.max(0, player.x - 120);
     cameraX = Math.max(0, Math.min(cameraX, 3200 - 960));
 
-    // Enemies
     enemies.forEach(e => {
         if (!e.alive) return;
         e.x += e.velX;
 
-        // Simple bounce between walls / platforms
         if (e.x < 50 || e.x > 3100) e.velX *= -1;
 
-        // Collision with player
         if (player.x + player.w > e.x && player.x < e.x + e.w &&
             player.y + player.h > e.y && player.y < e.y + e.h) {
 
             if (player.velY > 0 && player.y + player.h - player.velY < e.y + 15) {
-                // Stomp
                 e.alive = false;
                 player.velY = -10;
                 score += 200;
@@ -263,7 +251,6 @@ function update() {
         }
     });
 
-    // Coins
     coinList.forEach(c => {
         if (c.collected) return;
         if (player.x + player.w > c.x && player.x < c.x + 28 &&
@@ -275,7 +262,6 @@ function update() {
         }
     });
 
-    // Flag / win
     if (player.x + player.w > flag.x && player.x < flag.x + flag.w &&
         player.y + player.h > flag.y) {
         win();
@@ -295,11 +281,9 @@ function drawCloud(x, y) {
 }
 
 function draw() {
-    // Sky
     ctx.fillStyle = '#5C94FC';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Clouds (parallax)
     drawCloud(150 - cameraX * 0.3, 80);
     drawCloud(500 - cameraX * 0.3, 120);
     drawCloud(900 - cameraX * 0.3, 60);
@@ -316,7 +300,7 @@ function draw() {
 
     // Platforms
     platforms.forEach(p => {
-        if (p.y >= 480) return; // skip main ground
+        if (p.y >= 480) return;
         ctx.fillStyle = '#C08040';
         ctx.fillRect(p.x, p.y, p.w, p.h);
         ctx.fillStyle = '#5D9B3C';
@@ -349,14 +333,11 @@ function draw() {
     // Enemies
     enemies.forEach(e => {
         if (!e.alive) return;
-        // Body
         ctx.fillStyle = '#8B4513';
         ctx.fillRect(e.x, e.y + 10, e.w, e.h - 10);
-        // Head
         ctx.beginPath();
         ctx.arc(e.x + e.w / 2, e.y + 14, 18, 0, Math.PI * 2);
         ctx.fill();
-        // Eyes
         ctx.fillStyle = '#FFF';
         ctx.fillRect(e.x + 10, e.y + 8, 8, 10);
         ctx.fillRect(e.x + 24, e.y + 8, 8, 10);
@@ -392,7 +373,6 @@ function loop() {
     requestAnimationFrame(loop);
 }
 
-// Init enemies start positions
 enemies.forEach(e => e.startX = e.x);
 updateUI();
 loop();
