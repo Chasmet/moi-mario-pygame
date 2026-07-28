@@ -8,6 +8,12 @@ on:
       - 'unity/**'
       - '.github/workflows/build-unity-android.yml'
       - '*.png'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'unity/**'
+      - '.github/workflows/build-unity-android.yml'
+      - '*.png'
 
 permissions:
   contents: write
@@ -93,6 +99,7 @@ jobs:
           retention-days: 30
 
       - name: Publish GitHub release
+        if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: unity-v1.0.${{ github.run_number }}
