@@ -38,9 +38,7 @@ jobs:
           set -euo pipefail
           TEMPLATE_SOURCE="/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
           TEMPLATE_TARGET="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-
-          mkdir -p "$HOME/.local/share/godot/export_templates"
-          mkdir -p "$HOME/.config"
+          mkdir -p "$HOME/.local/share/godot/export_templates" "$HOME/.config"
 
           if [ -d "/root/.config/godot" ] && [ "$HOME" != "/root" ]; then
             rm -rf "$HOME/.config/godot"
@@ -60,40 +58,53 @@ jobs:
       - name: Import and validate scenes and scripts
         shell: bash
         run: |
-          set -euo pipefail
-          godot --headless --verbose --editor --quit --path .
-
-      - name: Export installable Android APK
-        id: export
-        shell: bash
-        run: |
-          set +e
-          rm -f "$APK_NAME" godot-export.log godot-export.status
-          godot --headless --verbose --path . --export-debug "Android" "$PWD/$APK_NAME" 2>&1 | tee godot-export.log
+          set -o pipefail
+          rm -f godot-import.log
+          godot --headless --verbose --editor --quit --path . 2>&1 | tee godot-import.log
           STATUS=${PIPESTATUS[0]}
-          echo "$STATUS" > godot-export.status
 
-          if [ "$STATUS" -eq 0 ]; then
-            test -s "$APK_NAME" || STATUS=90
-          fi
-
-          if [ "$STATUS" -eq 0 ]; then
-            ls -lh "$APK_NAME"
-            sha256sum "$APK_NAME"
-          else
-            echo "Godot Android export failed with status $STATUS"
-            tail -n 120 godot-export.log || true
+          if grep -Eiq "SCRIPT ERROR|Parse Error|Failed to load script|Cannot infer the type" godot-import.log; then
+            echo "GDScript validation errors detected"
+            grep -Ein "SCRIPT ERROR|Parse Error|Failed to load script|Cannot infer the type" godot-import.log || true
+            exit 91
           fi
 
           exit "$STATUS"
 
-      - name: Upload APK and export diagnostics
+      - name: Export installable Android APK
+        shell: bash
+        run: |
+          set -o pipefail
+          rm -f "$APK_NAME" godot-export.log godot-export.status
+          godot --headless --verbose --path . --export-debug "Android" "$PWD/$APK_NAME" 2>&1 | tee godot-export.log
+          STATUS=${PIPESTATUS[0]}
+
+          if grep -Eiq "SCRIPT ERROR|Parse Error|Failed to load script|Cannot infer the type" godot-export.log; then
+            STATUS=92
+          fi
+          if [ "$STATUS" -eq 0 ]; then
+            test -s "$APK_NAME" || STATUS=90
+          fi
+
+          echo "$STATUS" > godot-export.status
+          if [ "$STATUS" -ne 0 ]; then
+            echo "Godot Android export failed with status $STATUS"
+            grep -Ein "SCRIPT ERROR|Parse Error|Failed to load script|Cannot infer the type" godot-export.log || true
+            tail -n 120 godot-export.log || true
+            exit "$STATUS"
+          fi
+
+          ls -lh "$APK_NAME"
+          sha256sum "$APK_NAME"
+
+      - name: Upload APK and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Super-CHK-Bros-Godot-4.7.1-build
           path: |
             Super-CHK-Bros.apk
+            godot-import.log
             godot-export.log
             godot-export.status
           if-no-files-found: warn
