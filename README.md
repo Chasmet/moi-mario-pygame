@@ -1,18 +1,36 @@
-# SUPER CHK BROS
+# SUPER CHK BROS (Godot 4)
 
-Platformer style Mario avec **CHK NOIR** en personnage principal.
+Vrai jeu platformer 2D avec **CHK NOIR**.
 
-## Jouer
+## Fonctionnalités
+- 10 niveaux progressifs
+- Difficulté qui augmente
+- Score + Vies
+- Contrôles clavier + tactile
+- Export Android APK via GitHub Actions
 
-https://chasmet.github.io/moi-mario-pygame/
+## Structure
+```
+scenes/
+  Main.tscn
+  Player.tscn
+scripts/
+  Main.gd
+  Player.gd
+  Enemy.gd
+project.godot
+```
 
-## Assets
-- Personnage principal : player.png
-- Ennemis : ennemis 1 à 15 + ennemi.png
-- Ami passeur : ami passseur 1.png
+## Comment jouer (éditeur)
+1. Ouvre le projet avec **Godot 4.3**
+2. Lance la scène Main.tscn
+
+## APK
+Le workflow GitHub Actions génère l'APK automatiquement.
+Va dans l'onglet **Actions** → **Build Godot Android APK**
 
 ## Contrôles
-- Mobile : boutons tactiles
-- Clavier : Flèches / Q-D + Espace
+- Gauche / Droite : Flèches ou A/D
+- Saut : Espace ou W
 
-Créé avec Grok
+Créé avec Grok + Godot 4
