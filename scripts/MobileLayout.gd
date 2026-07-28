@@ -1,12 +1,14 @@
 extends Node
 
-const GAME_HEIGHT_RATIO: float = 0.70
-const CONTROL_HEIGHT_RATIO: float = 0.30
+const GAME_HEIGHT_RATIO: float = 0.89
+const CONTROL_HEIGHT_RATIO: float = 0.11
+const PLAYER_SPRITE_SIZE: Vector2 = Vector2(92.0, 124.0)
+const PLAYER_COLLISION_SIZE: Vector2 = Vector2(50.0, 78.0)
+const CAMERA_ZOOM: Vector2 = Vector2(1.36, 1.36)
 
 var main_scene: Node
 var ui_layer: CanvasLayer
 var control_panel: ColorRect
-var control_title: Label
 var touch_buttons: Dictionary = {}
 var configured: bool = false
 
@@ -32,6 +34,8 @@ func _notification(what: int) -> void:
 func _on_node_added(node: Node) -> void:
 	if node.name == "Main":
 		call_deferred("_configure_scene", node)
+	elif node is StaticBody2D or node is AnimatableBody2D:
+		call_deferred("_make_platform_forgiving", node)
 
 
 func _try_configure_current_scene() -> void:
@@ -54,9 +58,9 @@ func _configure_scene(scene: Node) -> void:
 	_remove_old_buttons()
 	_create_control_panel()
 	_create_touch_controls()
-	_configure_camera()
 	configured = true
 	_layout_interface()
+	call_deferred("_apply_v3_gameplay")
 	_release_old_mobile_flags()
 
 
@@ -73,7 +77,7 @@ func _create_control_panel() -> void:
 	control_panel.name = "MobileControlPanel"
 	control_panel.process_mode = Node.PROCESS_MODE_ALWAYS
 	control_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	control_panel.color = Color("#090f1d")
+	control_panel.color = Color("#080d18")
 	control_panel.anchor_left = 0.0
 	control_panel.anchor_top = GAME_HEIGHT_RATIO
 	control_panel.anchor_right = 1.0
@@ -87,7 +91,7 @@ func _create_control_panel() -> void:
 	var separator: ColorRect = ColorRect.new()
 	separator.name = "Separator"
 	separator.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	separator.color = Color("#35a9ff")
+	separator.color = Color("#33b8ff")
 	separator.anchor_left = 0.0
 	separator.anchor_top = 0.0
 	separator.anchor_right = 1.0
@@ -95,18 +99,8 @@ func _create_control_panel() -> void:
 	separator.offset_left = 0.0
 	separator.offset_top = 0.0
 	separator.offset_right = 0.0
-	separator.offset_bottom = 5.0
+	separator.offset_bottom = 3.0
 	control_panel.add_child(separator)
-
-	control_title = Label.new()
-	control_title.name = "ControlTitle"
-	control_title.text = "COMMANDES"
-	control_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	control_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	control_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	control_title.add_theme_color_override("font_color", Color(0.65, 0.85, 1.0, 0.75))
-	control_title.add_theme_font_size_override("font_size", 20)
-	control_panel.add_child(control_title)
 
 
 func _create_touch_controls() -> void:
@@ -114,10 +108,10 @@ func _create_touch_controls() -> void:
 		return
 
 	touch_buttons.clear()
-	touch_buttons["left"] = _make_touch_button("MoveLeft", "move_left", "◀", 160, Color("#1b3d63"), Color("#2d8ed8"))
-	touch_buttons["right"] = _make_touch_button("MoveRight", "move_right", "▶", 160, Color("#1b3d63"), Color("#2d8ed8"))
-	touch_buttons["jump"] = _make_touch_button("Jump", "jump", "SAUT", 184, Color("#693c16"), Color("#e38b26"))
-	touch_buttons["pause"] = _make_touch_button("Pause", "pause_game", "II", 104, Color("#303743"), Color("#68788c"))
+	touch_buttons["left"] = _make_touch_button("MoveLeft", "move_left", "◀", 92, Color("#183b60"), Color("#2a91dd"))
+	touch_buttons["right"] = _make_touch_button("MoveRight", "move_right", "▶", 92, Color("#183b60"), Color("#2a91dd"))
+	touch_buttons["jump"] = _make_touch_button("Jump", "jump", "SAUT", 106, Color("#6e3c12"), Color("#f09228"))
+	touch_buttons["pause"] = _make_touch_button("Pause", "pause_game", "Ⅱ", 58, Color("#303844"), Color("#718297"))
 
 	for key in touch_buttons:
 		ui_layer.add_child(touch_buttons[key])
@@ -129,8 +123,8 @@ func _make_touch_button(node_name: String, action_name: StringName, text_value: 
 	button.process_mode = Node.PROCESS_MODE_ALWAYS
 	button.action = action_name
 	button.passby_press = true
-	button.texture_normal = _make_circle_texture(diameter, normal_color, Color(1.0, 1.0, 1.0, 0.42), 5)
-	button.texture_pressed = _make_circle_texture(diameter, pressed_color, Color(1.0, 0.92, 0.48, 0.95), 7)
+	button.texture_normal = _make_circle_texture(diameter, normal_color, Color(1.0, 1.0, 1.0, 0.46), 4)
+	button.texture_pressed = _make_circle_texture(diameter, pressed_color, Color(1.0, 0.93, 0.48, 0.98), 5)
 
 	var touch_shape: CircleShape2D = CircleShape2D.new()
 	touch_shape.radius = float(diameter) * 0.5
@@ -139,16 +133,21 @@ func _make_touch_button(node_name: String, action_name: StringName, text_value: 
 	var label: Label = Label.new()
 	label.name = "Label"
 	label.text = text_value
-	label.position = Vector2(-float(diameter) * 0.5, -30.0)
-	label.size = Vector2(float(diameter), 60.0)
+	label.position = Vector2(-float(diameter) * 0.5, -float(diameter) * 0.5)
+	label.size = Vector2(float(diameter), float(diameter))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.9))
-	label.add_theme_constant_override("shadow_offset_x", 3)
-	label.add_theme_constant_override("shadow_offset_y", 3)
-	label.add_theme_font_size_override("font_size", 31 if text_value != "SAUT" else 25)
+	label.add_theme_constant_override("shadow_offset_x", 2)
+	label.add_theme_constant_override("shadow_offset_y", 2)
+	var font_size: int = 24
+	if text_value == "SAUT":
+		font_size = 18
+	elif text_value == "Ⅱ":
+		font_size = 17
+	label.add_theme_font_size_override("font_size", font_size)
 	button.add_child(label)
 	return button
 
@@ -179,19 +178,17 @@ func _layout_interface() -> void:
 
 	var panel_top: float = viewport_size.y * GAME_HEIGHT_RATIO
 	var panel_height: float = viewport_size.y * CONTROL_HEIGHT_RATIO
-	var common_y: float = panel_top + panel_height * 0.62
+	var common_y: float = panel_top + panel_height * 0.52
+	var control_scale: float = clampf(panel_height / 142.0, 0.78, 1.05)
 
-	_layout_touch_button("left", Vector2(viewport_size.x * 0.16, common_y), clampf(panel_height / 400.0, 0.82, 1.15))
-	_layout_touch_button("right", Vector2(viewport_size.x * 0.39, common_y), clampf(panel_height / 400.0, 0.82, 1.15))
-	_layout_touch_button("jump", Vector2(viewport_size.x * 0.82, common_y), clampf(panel_height / 400.0, 0.82, 1.15))
-	_layout_touch_button("pause", Vector2(viewport_size.x * 0.60, panel_top + panel_height * 0.28), clampf(panel_height / 400.0, 0.82, 1.08))
-
-	if control_title != null:
-		control_title.position = Vector2(viewport_size.x * 0.35, 14.0)
-		control_title.size = Vector2(viewport_size.x * 0.30, 42.0)
+	_layout_touch_button("left", Vector2(viewport_size.x * 0.19, common_y), control_scale)
+	_layout_touch_button("right", Vector2(viewport_size.x * 0.39, common_y), control_scale)
+	_layout_touch_button("jump", Vector2(viewport_size.x * 0.74, common_y), control_scale)
+	_layout_touch_button("pause", Vector2(viewport_size.x * 0.92, common_y), control_scale)
 
 	_layout_hud(viewport_size)
 	_configure_camera()
+	_apply_v3_gameplay()
 
 
 func _layout_touch_button(key: String, center_position: Vector2, scale_value: float) -> void:
@@ -206,8 +203,8 @@ func _layout_hud(viewport_size: Vector2) -> void:
 	if main_scene == null:
 		return
 
-	var font_size: int = clampi(int(viewport_size.x / 30.0), 18, 25)
-	var side_width: float = minf(245.0, viewport_size.x * 0.43)
+	var font_size: int = clampi(int(viewport_size.x / 32.0), 17, 23)
+	var side_width: float = minf(235.0, viewport_size.x * 0.43)
 
 	var score_label: Label = main_scene.get_node_or_null("UI/HUD/ScoreLabel") as Label
 	var lives_label: Label = main_scene.get_node_or_null("UI/HUD/LivesLabel") as Label
@@ -218,25 +215,25 @@ func _layout_hud(viewport_size: Vector2) -> void:
 	var message_label: Label = main_scene.get_node_or_null("UI/HUD/MessageLabel") as Label
 
 	if score_label != null:
-		score_label.offset_left = 14.0
+		score_label.offset_left = 12.0
 		score_label.offset_right = side_width
 		score_label.add_theme_font_size_override("font_size", font_size)
 	if lives_label != null:
-		lives_label.offset_left = 14.0
+		lives_label.offset_left = 12.0
 		lives_label.offset_right = side_width
 		lives_label.add_theme_font_size_override("font_size", font_size - 1)
 	if coin_label != null:
-		coin_label.offset_left = 14.0
+		coin_label.offset_left = 12.0
 		coin_label.offset_right = side_width
 		coin_label.add_theme_font_size_override("font_size", font_size - 1)
 	if level_label != null:
 		level_label.offset_left = -side_width
-		level_label.offset_right = -14.0
+		level_label.offset_right = -12.0
 		level_label.add_theme_font_size_override("font_size", font_size)
 	if high_label != null:
 		high_label.offset_left = -side_width
-		high_label.offset_right = -14.0
-		high_label.add_theme_font_size_override("font_size", font_size - 2)
+		high_label.offset_right = -12.0
+		high_label.add_theme_font_size_override("font_size", maxi(font_size - 2, 15))
 	if progress_bar != null:
 		progress_bar.offset_left = viewport_size.x * 0.34
 		progress_bar.offset_right = -viewport_size.x * 0.34
@@ -244,7 +241,53 @@ func _layout_hud(viewport_size: Vector2) -> void:
 		var half_width: float = viewport_size.x * 0.43
 		message_label.offset_left = -half_width
 		message_label.offset_right = half_width
-		message_label.add_theme_font_size_override("font_size", clampi(font_size + 10, 30, 42))
+		message_label.add_theme_font_size_override("font_size", clampi(font_size + 10, 29, 39))
+
+
+func _apply_v3_gameplay() -> void:
+	if main_scene == null or not is_instance_valid(main_scene):
+		return
+
+	var player: CharacterBody2D = main_scene.get("player") as CharacterBody2D
+	if player == null:
+		call_deferred("_apply_v3_gameplay")
+		return
+
+	if player.has_method("apply_v3_dimensions"):
+		player.call("apply_v3_dimensions", PLAYER_SPRITE_SIZE, PLAYER_COLLISION_SIZE)
+	player.floor_snap_length = 18.0
+
+	var world: Node = main_scene.get_node_or_null("World")
+	if world != null:
+		for child in world.get_children():
+			if child is StaticBody2D or child is AnimatableBody2D:
+				_make_platform_forgiving(child)
+
+	_configure_camera()
+
+
+func _make_platform_forgiving(body: Node) -> void:
+	if body == null or not is_instance_valid(body) or body.has_meta("v3_platform_adjusted"):
+		return
+	if main_scene == null or not is_instance_valid(main_scene):
+		return
+
+	var world: Node = main_scene.get_node_or_null("World")
+	if world == null or not world.is_ancestor_of(body):
+		return
+
+	for child in body.get_children():
+		var collision: CollisionShape2D = child as CollisionShape2D
+		if collision == null:
+			continue
+		var rectangle: RectangleShape2D = collision.shape as RectangleShape2D
+		if rectangle == null:
+			continue
+		var size: Vector2 = rectangle.size
+		if size.y <= 32.0 and size.x >= 90.0 and size.x <= 260.0:
+			body.scale.x *= 1.18
+			body.set_meta("v3_platform_adjusted", true)
+		return
 
 
 func _configure_camera() -> void:
@@ -255,15 +298,11 @@ func _configure_camera() -> void:
 	if camera == null:
 		return
 
-	camera.position = Vector2(120.0, -40.0)
-	camera.zoom = Vector2(0.95, 0.95)
+	camera.position = Vector2(100.0, -100.0)
+	camera.zoom = CAMERA_ZOOM
 	camera.position_smoothing_enabled = false
-	camera.drag_horizontal_enabled = true
-	camera.drag_vertical_enabled = true
-	camera.drag_left_margin = 0.28
-	camera.drag_right_margin = 0.34
-	camera.drag_top_margin = 0.32
-	camera.drag_bottom_margin = 0.24
+	camera.drag_horizontal_enabled = false
+	camera.drag_vertical_enabled = false
 	camera.reset_smoothing()
 
 
