@@ -16,14 +16,41 @@ const JUMP_FORCE = -16.8;
 const MOVE_SPEED = 5.4;
 const FRICTION = 0.8;
 
-let player = { x: 80, y: 200, w: 50, h: 76, velX: 0, velY: 0, onGround: false, facing: 1 };
+let player = { x: 80, y: 200, w: 52, h: 78, velX: 0, velY: 0, onGround: false, facing: 1 };
 let cameraX = 0, score = 0, coins = 0, lives = 3, gameState = 'play', invincible = 0;
 
 const playerImg = new Image();
 playerImg.src = 'player.png';
 
+const enemyImgs = [];
+const enemyFiles = [
+    'ennemi 1.png',
+    'ennemi.png.png',
+    'ennemis 2.png',
+    'ennemis 3.png',
+    'ennemis 4.png',
+    'ennemis 5.png',
+    'ennemis 6.png',
+    'ennemis 7.png',
+    'ennemis 9.png',
+    'ennemis 10.png',
+    'ennemis 11.png',
+    'ennemis 12.png',
+    'ennemis 13.png',
+    'ennemis 14.png',
+    'ennemis 15.png'
+];
+enemyFiles.forEach(f => {
+    const img = new Image();
+    img.src = f;
+    enemyImgs.push(img);
+});
+
+const amiImg = new Image();
+amiImg.src = 'ami passseur 1.png';
+
 const platforms = [
-    { x: 0, y: 480, w: 3400, h: 80 },
+    { x: 0, y: 480, w: 4200, h: 80 },
     { x: 220, y: 380, w: 140, h: 22 },
     { x: 420, y: 300, w: 140, h: 22 },
     { x: 640, y: 380, w: 120, h: 22 },
@@ -36,28 +63,34 @@ const platforms = [
     { x: 2300, y: 320, w: 200, h: 22 },
     { x: 2600, y: 240, w: 160, h: 22 },
     { x: 2850, y: 360, w: 180, h: 22 },
-    { x: 3100, y: 300, w: 150, h: 22 }
+    { x: 3100, y: 300, w: 150, h: 22 },
+    { x: 3400, y: 380, w: 160, h: 22 },
+    { x: 3650, y: 280, w: 140, h: 22 },
+    { x: 3900, y: 200, w: 180, h: 22 }
 ];
 
 let enemies = [
-    { x: 380, y: 432, w: 44, h: 44, velX: -1.9, alive: true },
-    { x: 720, y: 432, w: 44, h: 44, velX: 1.7, alive: true },
-    { x: 980, y: 432, w: 44, h: 44, velX: -2.1, alive: true },
-    { x: 1420, y: 432, w: 44, h: 44, velX: 1.8, alive: true },
-    { x: 1880, y: 432, w: 44, h: 44, velX: -1.6, alive: true },
-    { x: 2380, y: 432, w: 44, h: 44, velX: 2.0, alive: true },
-    { x: 2750, y: 432, w: 44, h: 44, velX: -1.7, alive: true },
-    { x: 3050, y: 432, w: 44, h: 44, velX: 1.9, alive: true }
+    { x: 380, y: 420, w: 48, h: 56, velX: -1.8, alive: true, img: 0 },
+    { x: 720, y: 420, w: 48, h: 56, velX: 1.6, alive: true, img: 1 },
+    { x: 980, y: 420, w: 48, h: 56, velX: -2.0, alive: true, img: 2 },
+    { x: 1420, y: 420, w: 48, h: 56, velX: 1.7, alive: true, img: 3 },
+    { x: 1880, y: 420, w: 48, h: 56, velX: -1.5, alive: true, img: 4 },
+    { x: 2380, y: 420, w: 48, h: 56, velX: 1.9, alive: true, img: 5 },
+    { x: 2750, y: 420, w: 48, h: 56, velX: -1.6, alive: true, img: 6 },
+    { x: 3050, y: 420, w: 48, h: 56, velX: 1.8, alive: true, img: 7 },
+    { x: 3350, y: 420, w: 48, h: 56, velX: -1.7, alive: true, img: 8 },
+    { x: 3700, y: 420, w: 48, h: 56, velX: 1.5, alive: true, img: 9 }
 ];
 
 let coinList = [
     {x:260,y:340},{x:460,y:260},{x:680,y:340},{x:880,y:220},
     {x:1120,y:300},{x:1360,y:210},{x:1620,y:320},{x:1860,y:240},
     {x:2100,y:160},{x:2360,y:280},{x:2650,y:200},{x:2900,y:320},
-    {x:3150,y:260}
+    {x:3150,y:260},{x:3450,y:340},{x:3700,y:240},{x:3950,y:160}
 ].map(c => ({...c, collected: false}));
 
-const flag = { x: 3280, y: 300, w: 20, h: 180 };
+const flag = { x: 4050, y: 300, w: 20, h: 180 };
+const ami = { x: 4000, y: 400, w: 60, h: 70 };
 
 let keys = {}, touchLeft = false, touchRight = false;
 
@@ -95,7 +128,7 @@ window.addEventListener('orientationchange', resize);
 resize();
 
 function resetGame() {
-    player = { x: 80, y: 200, w: 50, h: 76, velX: 0, velY: 0, onGround: false, facing: 1 };
+    player = { x: 80, y: 200, w: 52, h: 78, velX: 0, velY: 0, onGround: false, facing: 1 };
     cameraX = 0; score = 0; coins = 0; lives = 3; invincible = 0; gameState = 'play';
     overlay.style.display = 'none';
     enemies.forEach(e => { e.alive = true; e.x = e.startX; });
@@ -128,7 +161,7 @@ function die() {
 
 function win() {
     gameState = 'win';
-    score += 1500 + coins * 50;
+    score += 2000 + coins * 50;
     updateUI();
     overlayTitle.textContent = 'VICTOIRE !';
     overlayMsg.textContent = 'CHK NOIR a gagné !  Score : ' + score;
@@ -163,15 +196,15 @@ function update() {
 
     if (player.x > cameraX + 400) cameraX = player.x - 400;
     if (player.x < cameraX + 140) cameraX = Math.max(0, player.x - 140);
-    cameraX = Math.max(0, Math.min(cameraX, 3400 - 960));
+    cameraX = Math.max(0, Math.min(cameraX, 4200 - 960));
 
     enemies.forEach(e => {
         if (!e.alive) return;
         e.x += e.velX;
-        if (e.x < 40 || e.x > 3300) e.velX *= -1;
+        if (e.x < 40 || e.x > 4100) e.velX *= -1;
 
         if (player.x + player.w > e.x && player.x < e.x + e.w && player.y + player.h > e.y && player.y < e.y + e.h) {
-            if (player.velY > 0 && player.y + player.h - player.velY < e.y + 16) {
+            if (player.velY > 0 && player.y + player.h - player.velY < e.y + 18) {
                 e.alive = false;
                 player.velY = -11;
                 score += 250;
@@ -205,7 +238,6 @@ function drawCloud(x, y) {
 }
 
 function draw() {
-    // Sky gradient
     const grd = ctx.createLinearGradient(0, 0, 0, 540);
     grd.addColorStop(0, '#1a6fb5');
     grd.addColorStop(1, '#5C94FC');
@@ -222,9 +254,9 @@ function draw() {
 
     // Ground
     ctx.fillStyle = '#C48A3A';
-    ctx.fillRect(0, 480, 3400, 80);
+    ctx.fillRect(0, 480, 4200, 80);
     ctx.fillStyle = '#4CAF50';
-    ctx.fillRect(0, 480, 3400, 16);
+    ctx.fillRect(0, 480, 4200, 16);
 
     // Platforms
     platforms.forEach(p => {
@@ -245,6 +277,11 @@ function draw() {
     ctx.lineTo(flag.x+10, flag.y+40);
     ctx.fill();
 
+    // Ami (passeur)
+    if (amiImg.complete && amiImg.naturalWidth > 0) {
+        ctx.drawImage(amiImg, ami.x, ami.y, ami.w, ami.h);
+    }
+
     // Coins
     coinList.forEach(c => {
         if (c.collected) return;
@@ -258,24 +295,21 @@ function draw() {
         ctx.fill();
     });
 
-    // Enemies (simple style)
+    // Enemies with real images
     enemies.forEach(e => {
         if (!e.alive) return;
-        // body
-        ctx.fillStyle = '#5D4037';
-        ctx.beginPath();
-        ctx.ellipse(e.x + e.w/2, e.y + e.h/2 + 4, e.w/2, e.h/2 - 2, 0, 0, Math.PI*2);
-        ctx.fill();
-        // eyes
-        ctx.fillStyle = '#FFF';
-        ctx.fillRect(e.x + 10, e.y + 12, 9, 11);
-        ctx.fillRect(e.x + 26, e.y + 12, 9, 11);
-        ctx.fillStyle = '#000';
-        ctx.fillRect(e.x + 13, e.y + 15, 4, 5);
-        ctx.fillRect(e.x + 29, e.y + 15, 4, 5);
+        const img = enemyImgs[e.img % enemyImgs.length];
+        if (img && img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, e.x, e.y, e.w, e.h);
+        } else {
+            ctx.fillStyle = '#5D4037';
+            ctx.beginPath();
+            ctx.ellipse(e.x + e.w/2, e.y + e.h/2 + 4, e.w/2, e.h/2 - 2, 0, 0, Math.PI*2);
+            ctx.fill();
+        }
     });
 
-    // Player (CHK NOIR)
+    // Player
     if (invincible % 6 < 3 || invincible === 0) {
         if (playerImg.complete && playerImg.naturalWidth > 0) {
             ctx.save();
@@ -288,7 +322,6 @@ function draw() {
             }
             ctx.restore();
         } else {
-            // fallback CHK
             ctx.fillStyle = '#00A8FF';
             ctx.fillRect(player.x, player.y, player.w, player.h);
             ctx.fillStyle = '#fff';
