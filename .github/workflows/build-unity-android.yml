@@ -1,0 +1,110 @@
+name: Build Unity Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'unity/**'
+      - '.github/workflows/build-unity-android.yml'
+      - '*.png'
+
+permissions:
+  contents: write
+
+jobs:
+  build-unity-android:
+    name: Build Super CHK Bros Unity APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+      UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+      UNITY_BUILD_PATH: Builds/Android/Super-CHK-Bros-Unity.apk
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Check Unity activation secrets
+        shell: bash
+        run: |
+          if [ -z "$UNITY_LICENSE" ] && { [ -z "$UNITY_EMAIL" ] || [ -z "$UNITY_PASSWORD" ]; }; then
+            echo "Unity activation is missing. Add UNITY_LICENSE, or UNITY_EMAIL and UNITY_PASSWORD, in repository Actions secrets."
+            exit 1
+          fi
+
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: false
+          swap-storage: false
+
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: unity/Library
+          key: unity-6000.3.18f1-android-${{ hashFiles('unity/Assets/**', 'unity/Packages/**', 'unity/ProjectSettings/**') }}
+          restore-keys: |
+            unity-6000.3.18f1-android-
+
+      - name: Build real Android APK with Unity 6.3 LTS
+        uses: game-ci/unity-builder@v4
+        with:
+          projectPath: unity
+          unityVersion: 6000.3.18f1
+          targetPlatform: Android
+          buildMethod: SuperChkBrosEditor.BuildAndroid.PerformBuild
+          androidExportType: androidPackage
+          allowDirtyBuild: true
+
+      - name: Locate APK
+        id: apk
+        shell: bash
+        run: |
+          APK_PATH=$(find unity -type f -name '*.apk' | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            APK_PATH=$(find . -type f -name 'Super-CHK-Bros-Unity.apk' | head -n 1)
+          fi
+          if [ -z "$APK_PATH" ]; then
+            echo "No APK was generated."
+            exit 1
+          fi
+          cp "$APK_PATH" Super-CHK-Bros-Unity.apk
+          sha256sum Super-CHK-Bros-Unity.apk | tee Super-CHK-Bros-Unity.apk.sha256
+          echo "path=Super-CHK-Bros-Unity.apk" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Super-CHK-Bros-Unity-Android
+          path: |
+            Super-CHK-Bros-Unity.apk
+            Super-CHK-Bros-Unity.apk.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: unity-v1.0.${{ github.run_number }}
+          name: Super CHK Bros Unity v1.0.${{ github.run_number }}
+          body: |
+            Première version Android Unity de Super CHK Bros.
+
+            - 10 niveaux procéduraux
+            - écran vertical 89 % jeu / 11 % commandes
+            - joystick tactile dynamique
+            - saut tactile dynamique
+            - ennemis, boss final, pièces, score et sauvegarde
+          files: |
+            Super-CHK-Bros-Unity.apk
+            Super-CHK-Bros-Unity.apk.sha256
