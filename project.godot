@@ -4,7 +4,7 @@ config_version=5
 [application]
 
 config/name="Super CHK Bros"
-config/description="Jeu de plateforme Android Godot 4.7.1 - 10 niveaux"
+config/description="Super CHK Bros V3 - jeu de plateforme Android Godot 4.7.1 - écran de jeu 89 %"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
@@ -21,6 +21,7 @@ window/size/mode=2
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
+window/energy_saving/keep_screen_on=true
 
 [input]
 
@@ -48,11 +49,12 @@ jump={
 [input_devices]
 
 pointing/emulate_touch_from_mouse=true
+pointing/emulate_mouse_from_touch=false
 
 [physics]
 
 common/physics_ticks_per_second=60
-2d/default_gravity=1850.0
+2d/default_gravity=1680.0
 
 [rendering]
 
