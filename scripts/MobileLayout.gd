@@ -5,10 +5,12 @@ const CONTROL_HEIGHT_RATIO: float = 0.11
 const PLAYER_SPRITE_SIZE: Vector2 = Vector2(92.0, 124.0)
 const PLAYER_COLLISION_SIZE: Vector2 = Vector2(50.0, 78.0)
 const CAMERA_ZOOM: Vector2 = Vector2(1.36, 1.36)
+const VIRTUAL_JOYSTICK_SCRIPT: Script = preload("res://scripts/VirtualJoystick.gd")
 
 var main_scene: Node
 var ui_layer: CanvasLayer
 var control_panel: ColorRect
+var movement_joystick: Control
 var touch_buttons: Dictionary = {}
 var configured: bool = false
 
@@ -47,6 +49,8 @@ func _try_configure_current_scene() -> void:
 func _configure_scene(scene: Node) -> void:
 	if scene == null or not is_instance_valid(scene):
 		return
+	if configured and main_scene == scene:
+		return
 
 	var found_ui: CanvasLayer = scene.get_node_or_null("UI") as CanvasLayer
 	if found_ui == null:
@@ -68,7 +72,7 @@ func _remove_old_buttons() -> void:
 	if ui_layer == null:
 		return
 	for child in ui_layer.get_children():
-		if child is Button or child is TouchScreenButton or child.name == "MobileControlPanel":
+		if child is Button or child is TouchScreenButton or child.name == "MobileControlPanel" or child.name == "MoveJoystick":
 			child.queue_free()
 
 
@@ -107,9 +111,14 @@ func _create_touch_controls() -> void:
 	if ui_layer == null:
 		return
 
+	movement_joystick = Control.new()
+	movement_joystick.name = "MoveJoystick"
+	movement_joystick.set_script(VIRTUAL_JOYSTICK_SCRIPT)
+	movement_joystick.process_mode = Node.PROCESS_MODE_ALWAYS
+	ui_layer.add_child(movement_joystick)
+	movement_joystick.connect("vector_changed", Callable(self, "_on_joystick_vector_changed"))
+
 	touch_buttons.clear()
-	touch_buttons["left"] = _make_touch_button("MoveLeft", "move_left", "◀", 92, Color("#183b60"), Color("#2a91dd"))
-	touch_buttons["right"] = _make_touch_button("MoveRight", "move_right", "▶", 92, Color("#183b60"), Color("#2a91dd"))
 	touch_buttons["jump"] = _make_touch_button("Jump", "jump", "SAUT", 106, Color("#6e3c12"), Color("#f09228"))
 	touch_buttons["pause"] = _make_touch_button("Pause", "pause_game", "Ⅱ", 58, Color("#303844"), Color("#718297"))
 
@@ -181,14 +190,25 @@ func _layout_interface() -> void:
 	var common_y: float = panel_top + panel_height * 0.52
 	var control_scale: float = clampf(panel_height / 142.0, 0.78, 1.05)
 
-	_layout_touch_button("left", Vector2(viewport_size.x * 0.19, common_y), control_scale)
-	_layout_touch_button("right", Vector2(viewport_size.x * 0.39, common_y), control_scale)
-	_layout_touch_button("jump", Vector2(viewport_size.x * 0.74, common_y), control_scale)
-	_layout_touch_button("pause", Vector2(viewport_size.x * 0.92, common_y), control_scale)
+	_layout_joystick(viewport_size, panel_top, panel_height)
+	_layout_touch_button("jump", Vector2(viewport_size.x * 0.76, common_y), control_scale)
+	_layout_touch_button("pause", Vector2(viewport_size.x * 0.93, common_y), control_scale)
 
 	_layout_hud(viewport_size)
 	_configure_camera()
 	_apply_v3_gameplay()
+
+
+func _layout_joystick(viewport_size: Vector2, panel_top: float, panel_height: float) -> void:
+	if movement_joystick == null or not is_instance_valid(movement_joystick):
+		return
+
+	var joystick_width: float = viewport_size.x * 0.55
+	var joystick_radius: float = clampf(panel_height * 0.31, 38.0, 48.0)
+	var center_position: Vector2 = Vector2(viewport_size.x * 0.23, panel_height * 0.52)
+	movement_joystick.position = Vector2.ZERO + Vector2(0.0, panel_top)
+	movement_joystick.size = Vector2(joystick_width, panel_height)
+	movement_joystick.call("configure", joystick_radius, center_position)
 
 
 func _layout_touch_button(key: String, center_position: Vector2, scale_value: float) -> void:
@@ -242,6 +262,14 @@ func _layout_hud(viewport_size: Vector2) -> void:
 		message_label.offset_left = -half_width
 		message_label.offset_right = half_width
 		message_label.add_theme_font_size_override("font_size", clampi(font_size + 10, 29, 39))
+
+
+func _on_joystick_vector_changed(value: Vector2) -> void:
+	if main_scene == null or not is_instance_valid(main_scene):
+		return
+	var player: CharacterBody2D = main_scene.get("player") as CharacterBody2D
+	if player != null and player.has_method("set_mobile_axis"):
+		player.call("set_mobile_axis", value)
 
 
 func _apply_v3_gameplay() -> void:
@@ -326,6 +354,8 @@ func _release_old_mobile_flags() -> void:
 	if player != null:
 		player.call("set_mobile_left", false)
 		player.call("set_mobile_right", false)
+		if player.has_method("set_mobile_axis"):
+			player.call("set_mobile_axis", Vector2.ZERO)
 
 
 func _release_all_mobile_actions() -> void:
@@ -333,6 +363,8 @@ func _release_all_mobile_actions() -> void:
 	Input.action_release("move_right")
 	Input.action_release("jump")
 	Input.action_release("pause_game")
+	if movement_joystick != null and is_instance_valid(movement_joystick) and movement_joystick.has_method("reset"):
+		movement_joystick.call("reset")
 	_release_old_mobile_flags()
 
 
