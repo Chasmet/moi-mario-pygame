@@ -1,24 +1,39 @@
 # Super CHK Bros
 
-Platformer style Mario avec **toi** en personnage principal.
+Platformer style Mario avec **toi** (CHK) en personnage principal.
 
-## Jouer
+## Jouer tout de suite
 
-Ouvre simplement `index.html` dans un navigateur ou déploie sur GitHub Pages.
+1. Active **GitHub Pages** :
+   - Va dans Settings → Pages
+   - Source : Deploy from a branch
+   - Branch : `main` / root
+   - Save
 
-### Contrôles
-- **Mobile** : boutons tactiles gauche / droite / SAUT
-- **Clavier** : Flèches ou Q/D + Espace
+2. Le jeu sera disponible à :
+   `https://chasmet.github.io/moi-mario-pygame/`
 
-### Objectif
-- Collecte les pièces
-- Écrase les ennemis
-- Atteins le drapeau rouge à la fin
+## Générer l'APK (vraie application Android)
 
-## Installation comme application (Android)
+### Méthode la plus simple (recommandée) :
 
-1. Ouvre le site dans Chrome
-2. Menu → "Ajouter à l'écran d'accueil"
-3. L'app s'installe comme une vraie application
+1. Active GitHub Pages (voir ci-dessus)
+2. Va sur **https://www.pwabuilder.com**
+3. Colle l'URL de ton jeu : `https://chasmet.github.io/moi-mario-pygame/`
+4. Clique **Start** puis **Package for stores**
+5. Choisis **Android**
+6. Télécharge le **APK**
 
-## Créé avec Grok
+Tu auras une vraie APK installable.
+
+### Alternative rapide (sans APK) :
+Sur ton téléphone → Chrome → Ouvre le jeu → Menu → **Ajouter à l'écran d'accueil**
+
+## Contrôles
+- Mobile : boutons tactiles
+- Clavier : Flèches + Espace
+
+## Objectif
+Collecte les pièces, écrase les ennemis, atteins le drapeau rouge.
+
+Créé avec Grok
