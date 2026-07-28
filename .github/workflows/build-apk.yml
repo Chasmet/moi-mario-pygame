@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -97,10 +97,12 @@ jobs:
       - name: Rename APK
         run: cp android/app/build/outputs/apk/debug/app-debug.apk Super-CHK-Bros.apk
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Publish direct APK download
+        uses: softprops/action-gh-release@v2
         with:
-          name: Super-CHK-Bros-APK
-          path: Super-CHK-Bros.apk
-          if-no-files-found: error
-          retention-days: 30
+          tag_name: apk-latest
+          name: Super CHK Bros - APK Android
+          body: Téléchargement direct de la dernière version Android du jeu.
+          files: Super-CHK-Bros.apk
+          prerelease: false
+          make_latest: true
