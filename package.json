@@ -1,0 +1,12 @@
+{
+  "name": "super-chk-bros",
+  "version": "1.0.0",
+  "description": "Super CHK Bros - Platformer",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo ready"
+  },
+  "keywords": ["game", "chk", "platformer"],
+  "author": "CHK NOIR",
+  "license": "MIT"
+}

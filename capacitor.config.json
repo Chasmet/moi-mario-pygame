@@ -1,0 +1,8 @@
+{
+  "appId": "com.chknoir.superchkbros",
+  "appName": "Super CHK Bros",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https"
+  }
+}
