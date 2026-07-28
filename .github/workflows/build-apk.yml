@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,92 +21,223 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Create Capacitor project files
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
         run: |
-          cat > package.json << 'EOF'
-          {
-            "name": "super-chk-bros",
-            "version": "1.0.0",
-            "private": true,
-            "dependencies": {
-              "@capacitor/android": "7.4.3",
-              "@capacitor/cli": "7.4.3",
-              "@capacitor/core": "7.4.3"
-            }
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Create native Android WebView project
+        run: |
+          rm -rf android-native
+          mkdir -p android-native/app/src/main/java/com/chknoir/superchkbros
+          mkdir -p android-native/app/src/main/res/values
+          mkdir -p android-native/app/src/main/assets/www
+
+          cat > android-native/settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = 'SuperCHKBro'
+          include ':app'
+          EOF
+
+          cat > android-native/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.7.3' apply false
           }
           EOF
-          npm install --package-lock-only
 
-      - name: Install Capacitor
-        run: npm ci
+          cat > android-native/app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application'
+          }
 
-      - name: Prepare web game
+          android {
+              namespace 'com.chknoir.superchkbros'
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId 'com.chknoir.superchkbros'
+                  minSdk 23
+                  targetSdk 35
+                  versionCode 1
+                  versionName '1.0'
+              }
+          }
+          EOF
+
+          cat > android-native/app/src/main/AndroidManifest.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+
+              <application
+                  android:allowBackup="true"
+                  android:hardwareAccelerated="true"
+                  android:label="Super CHK Bros"
+                  android:theme="@style/AppTheme"
+                  android:usesCleartextTraffic="true">
+                  <activity
+                      android:name=".MainActivity"
+                      android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
+                      android:exported="true"
+                      android:screenOrientation="landscape">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat > android-native/app/src/main/res/values/styles.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+                  <item name="android:windowFullscreen">true</item>
+                  <item name="android:windowActionModeOverlay">true</item>
+                  <item name="android:windowBackground">#000000</item>
+                  <item name="android:navigationBarColor">#000000</item>
+                  <item name="android:colorAccent">#00A8FF</item>
+              </style>
+          </resources>
+          EOF
+
+          cat > android-native/app/src/main/java/com/chknoir/superchkbros/MainActivity.java <<'EOF'
+          package com.chknoir.superchkbros;
+
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.view.WindowManager;
+          import android.webkit.WebChromeClient;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+
+          public class MainActivity extends Activity {
+              private WebView webView;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                  enableImmersiveMode();
+
+                  webView = new WebView(this);
+                  webView.setBackgroundColor(0xFF000000);
+                  webView.setWebViewClient(new WebViewClient());
+                  webView.setWebChromeClient(new WebChromeClient());
+
+                  WebSettings settings = webView.getSettings();
+                  settings.setJavaScriptEnabled(true);
+                  settings.setDomStorageEnabled(true);
+                  settings.setAllowFileAccess(true);
+                  settings.setAllowContentAccess(true);
+                  settings.setMediaPlaybackRequiresUserGesture(false);
+                  settings.setBuiltInZoomControls(false);
+                  settings.setDisplayZoomControls(false);
+
+                  setContentView(webView);
+                  webView.loadUrl("file:///android_asset/www/index.html");
+              }
+
+              private void enableImmersiveMode() {
+                  getWindow().getDecorView().setSystemUiVisibility(
+                      View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                          | View.SYSTEM_UI_FLAG_FULLSCREEN
+                          | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                          | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                          | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                          | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                  );
+              }
+
+              @Override
+              public void onWindowFocusChanged(boolean hasFocus) {
+                  super.onWindowFocusChanged(hasFocus);
+                  if (hasFocus) {
+                      enableImmersiveMode();
+                  }
+              }
+
+              @Override
+              public void onBackPressed() {
+                  if (webView != null && webView.canGoBack()) {
+                      webView.goBack();
+                  } else {
+                      super.onBackPressed();
+                  }
+              }
+
+              @Override
+              protected void onDestroy() {
+                  if (webView != null) {
+                      webView.destroy();
+                  }
+                  super.onDestroy();
+              }
+          }
+          EOF
+
+      - name: Copy web game into APK
         run: |
-          mkdir -p www
-          rsync -a ./ www/ \
+          rsync -a ./ android-native/app/src/main/assets/www/ \
             --exclude '.git/' \
             --exclude '.github/' \
             --exclude 'android/' \
+            --exclude 'android-native/' \
             --exclude 'www/' \
             --exclude 'node_modules/' \
             --exclude 'package.json' \
-            --exclude 'package-lock.json'
-          test -f www/index.html
-          cat > capacitor.config.json << 'EOF'
-          {
-            "appId": "com.chknoir.superchkbros",
-            "appName": "Super CHK Bros",
-            "webDir": "www",
-            "server": {
-              "androidScheme": "https"
-            }
-          }
-          EOF
-
-      - name: Create Android project
-        run: |
-          npx cap add android
-          npx cap sync android
-
-      - name: Force landscape
-        run: |
-          python3 - << 'PY'
-          from pathlib import Path
-          path = Path('android/app/src/main/AndroidManifest.xml')
-          text = path.read_text()
-          text = text.replace(
-              'android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"',
-              'android:screenOrientation="landscape" android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"'
-          )
-          path.write_text(text)
-          PY
+            --exclude 'package-lock.json' \
+            --exclude 'Super-CHK-Bros.apk'
+          test -f android-native/app/src/main/assets/www/index.html
+          test -f android-native/app/src/main/assets/www/game.js
 
       - name: Build APK
-        working-directory: android
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+        working-directory: android-native
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
 
-      - name: Rename APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk Super-CHK-Bros.apk
+      - name: Prepare direct APK file
+        run: |
+          cp android-native/app/build/outputs/apk/debug/app-debug.apk Super-CHK-Bros.apk
+          test -s Super-CHK-Bros.apk
+          sha256sum Super-CHK-Bros.apk
 
       - name: Publish direct APK download
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: apk-latest
-          name: Super CHK Bros - APK Android
-          body: Téléchargement direct de la dernière version Android du jeu.
-          files: Super-CHK-Bros.apk
-          prerelease: false
-          make_latest: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete apk-latest --yes --cleanup-tag || true
+          gh release create apk-latest Super-CHK-Bros.apk \
+            --target "$GITHUB_SHA" \
+            --title "Super CHK Bros - APK Android" \
+            --notes "Téléchargement direct de la dernière version Android du jeu." \
+            --latest
