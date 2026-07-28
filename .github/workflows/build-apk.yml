@@ -20,7 +20,7 @@ env:
 
 jobs:
   build:
-    name: Validate and build real Godot APK
+    name: Validate, smoke-test and build real Godot APK
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     container:
@@ -68,7 +68,21 @@ jobs:
             grep -Ein "SCRIPT ERROR|Parse Error|Failed to load script|Cannot infer the type" godot-import.log || true
             exit 91
           fi
+          exit "$STATUS"
 
+      - name: Run gameplay smoke test
+        shell: bash
+        run: |
+          set -o pipefail
+          rm -f godot-runtime.log
+          godot --headless --verbose --path . --quit-after 180 2>&1 | tee godot-runtime.log
+          STATUS=${PIPESTATUS[0]}
+
+          if grep -Eiq "SCRIPT ERROR|Parse Error|Failed to load script|Invalid call|Invalid access|Attempt to call|Nonexistent function|on a null instance" godot-runtime.log; then
+            echo "Runtime gameplay errors detected"
+            grep -Ein "SCRIPT ERROR|Parse Error|Failed to load script|Invalid call|Invalid access|Attempt to call|Nonexistent function|on a null instance" godot-runtime.log || true
+            exit 93
+          fi
           exit "$STATUS"
 
       - name: Export installable Android APK
@@ -105,6 +119,7 @@ jobs:
           path: |
             Super-CHK-Bros.apk
             godot-import.log
+            godot-runtime.log
             godot-export.log
             godot-export.status
           if-no-files-found: warn
