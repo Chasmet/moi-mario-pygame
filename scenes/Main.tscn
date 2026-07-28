@@ -20,47 +20,107 @@ mouse_filter = 2
 
 [node name="ScoreLabel" type="Label" parent="UI/HUD"]
 layout_mode = 0
-offset_left = 24.0
-offset_top = 20.0
-offset_right = 320.0
-offset_bottom = 56.0
+offset_left = 22.0
+offset_top = 16.0
+offset_right = 330.0
+offset_bottom = 52.0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 28
-text = "SCORE 0"
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 26
+text = "SCORE 000000"
 
 [node name="LivesLabel" type="Label" parent="UI/HUD"]
 layout_mode = 0
-offset_left = 24.0
-offset_top = 60.0
-offset_right = 220.0
-offset_bottom = 96.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 28
-text = "VIES 3"
+offset_left = 22.0
+offset_top = 52.0
+offset_right = 205.0
+offset_bottom = 88.0
+theme_override_colors/font_color = Color(1, 0.92, 0.55, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 25
+text = "VIES 5"
+
+[node name="CoinLabel" type="Label" parent="UI/HUD"]
+layout_mode = 0
+offset_left = 22.0
+offset_top = 88.0
+offset_right = 240.0
+offset_bottom = 124.0
+theme_override_colors/font_color = Color(1, 0.82, 0.18, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 24
+text = "PIÈCES 0"
 
 [node name="LevelLabel" type="Label" parent="UI/HUD"]
 layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -240.0
-offset_top = 20.0
-offset_right = -24.0
-offset_bottom = 56.0
+offset_left = -285.0
+offset_top = 16.0
+offset_right = -22.0
+offset_bottom = 52.0
 grow_horizontal = 0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 28
-text = "NIVEAU 1"
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 26
+text = "NIVEAU 1/10"
 horizontal_alignment = 2
+
+[node name="HighLabel" type="Label" parent="UI/HUD"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -320.0
+offset_top = 52.0
+offset_right = -22.0
+offset_bottom = 88.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.58, 0.93, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 23
+text = "RECORD 000000"
+horizontal_alignment = 2
+
+[node name="BossLabel" type="Label" parent="UI/HUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 88.0
+offset_bottom = 128.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 0.25, 0.2, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 28
+text = "BOSS"
+horizontal_alignment = 1
+
+[node name="ProgressBar" type="ProgressBar" parent="UI/HUD"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 360.0
+offset_top = 20.0
+offset_right = -360.0
+offset_bottom = 36.0
+grow_horizontal = 2
+mouse_filter = 2
+value = 0.0
+show_percentage = false
 
 [node name="MessageLabel" type="Label" parent="UI/HUD"]
 layout_mode = 1
@@ -69,17 +129,18 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -40.0
-offset_right = 300.0
-offset_bottom = 40.0
+offset_left = -430.0
+offset_top = -82.0
+offset_right = 430.0
+offset_bottom = 82.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 0.9, 0.2, 1)
+theme_override_colors/font_color = Color(1, 0.91, 0.28, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_constants/shadow_offset_x = 3
-theme_override_constants/shadow_offset_y = 3
+theme_override_constants/shadow_offset_x = 4
+theme_override_constants/shadow_offset_y = 4
 theme_override_font_sizes/font_size = 42
 text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
+autowrap_mode = 2
