@@ -1,21 +1,21 @@
 extends CharacterBody2D
 
-const MAX_SPEED: float = 315.0
-const ACCELERATION: float = 2850.0
-const AIR_ACCELERATION: float = 2050.0
-const FRICTION: float = 3300.0
-const AIR_DECELERATION: float = 1050.0
+const MAX_SPEED: float = 330.0
+const ACCELERATION: float = 4600.0
+const AIR_ACCELERATION: float = 3400.0
+const FRICTION: float = 5200.0
+const AIR_DECELERATION: float = 2200.0
 const GRAVITY: float = 1680.0
-const JUMP_SPEED: float = -720.0
+const JUMP_SPEED: float = -735.0
 const STOMP_BOUNCE: float = -520.0
 const MAX_FALL_SPEED: float = 900.0
-const COYOTE_TIME: float = 0.20
-const JUMP_BUFFER_TIME: float = 0.22
+const COYOTE_TIME: float = 0.24
+const JUMP_BUFFER_TIME: float = 0.28
 const APEX_GRAVITY_MULTIPLIER: float = 0.62
 const FALL_GRAVITY_MULTIPLIER: float = 1.08
 const CROUCH_SPEED_MULTIPLIER: float = 0.46
 const CROUCH_HEIGHT_RATIO: float = 0.62
-const JOYSTICK_AXIS_DEADZONE: float = 0.16
+const JOYSTICK_AXIS_DEADZONE: float = 0.055
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -135,7 +135,7 @@ func _physics_process(delta: float) -> void:
 func _update_stance() -> void:
 	var horizontal_strength: float = absf(mobile_axis.x)
 	var vertical_strength: float = absf(mobile_axis.y)
-	var vertical_dominant: bool = vertical_strength >= 0.42 and vertical_strength >= horizontal_strength * 0.85
+	var vertical_dominant: bool = vertical_strength >= 0.34 and vertical_strength >= horizontal_strength * 0.82
 	var next_crouching: bool = is_on_floor() and vertical_dominant and mobile_axis.y > 0.0
 	var next_looking_up: bool = is_on_floor() and vertical_dominant and mobile_axis.y < 0.0
 
@@ -259,7 +259,7 @@ func _update_camera_look(delta: float) -> void:
 		target_position.y = -190.0
 	elif crouching:
 		target_position.y = -55.0
-	camera_node.position = camera_node.position.lerp(target_position, minf(1.0, delta * 7.5))
+	camera_node.position = camera_node.position.lerp(target_position, minf(1.0, delta * 11.5))
 
 
 func _update_visual(delta: float, direction: float) -> void:
@@ -272,7 +272,7 @@ func _update_visual(delta: float, direction: float) -> void:
 	var target_rotation: float = clampf(velocity.x / MAX_SPEED, -1.0, 1.0) * 0.045
 	if looking_up:
 		target_rotation = -0.055
-	sprite.rotation = lerpf(sprite.rotation, target_rotation, minf(1.0, delta * 11.0))
+	sprite.rotation = lerpf(sprite.rotation, target_rotation, minf(1.0, delta * 14.0))
 
 	var stretch: float = clampf(absf(velocity.y) / MAX_FALL_SPEED, 0.0, 1.0)
 	var target_scale: Vector2 = base_scale
@@ -289,5 +289,5 @@ func _update_visual(delta: float, direction: float) -> void:
 		var bounce: float = sin(float(Time.get_ticks_msec()) * 0.018) * 0.025
 		target_scale = base_scale * Vector2(1.0 - bounce, 1.0 + bounce)
 
-	sprite.scale = sprite.scale.lerp(target_scale, minf(1.0, delta * 13.0))
-	sprite.position = sprite.position.lerp(target_sprite_position, minf(1.0, delta * 13.0))
+	sprite.scale = sprite.scale.lerp(target_scale, minf(1.0, delta * 16.0))
+	sprite.position = sprite.position.lerp(target_sprite_position, minf(1.0, delta * 16.0))
