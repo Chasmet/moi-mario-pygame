@@ -70,7 +70,7 @@ jobs:
           rm -f "$APK_NAME"
           godot --headless --verbose --path . --export-debug "Android" "$PWD/$APK_NAME"
           test -s "$APK_NAME"
-          file "$APK_NAME"
+          ls -lh "$APK_NAME"
           sha256sum "$APK_NAME"
 
       - name: Upload APK artifact
